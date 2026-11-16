@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Departments"};export default function Page(){return <DevelopmentState title="Departments" description="Track financial activity by department." backend="Department tables and journal dimensions are not defined in the existing migration."/>;}

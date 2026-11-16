@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Payments"};export default function Page(){return <DevelopmentState title="Payments" description="Customer receipts and supplier payment workflows." backend="Payment records and their links to invoices or suppliers are not present in the existing migration."/>;}

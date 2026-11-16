@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Tax management"};export default function Page(){return <DevelopmentState title="Tax management" description="Tax accounts, filing periods, and reporting." backend="The migration includes tax payable accounts but does not include tax rates, filings, or tax transaction tables."/>;}

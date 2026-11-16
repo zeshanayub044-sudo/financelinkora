@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Customers & invoices"};export default function Page(){return <DevelopmentState title="Customers & invoices" description="Customer records, billing, and collections." backend="Customer, invoice, receivable aging, and collection tables are not defined in the migration."/>;}

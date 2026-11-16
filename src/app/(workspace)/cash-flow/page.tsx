@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Cash flow"};export default function Page(){return <DevelopmentState title="Cash flow" description="Cash position and forecast views." backend="The chart of accounts supports cash and bank categories, but statement, forecast, and reconciliation data are not defined yet."/>;}

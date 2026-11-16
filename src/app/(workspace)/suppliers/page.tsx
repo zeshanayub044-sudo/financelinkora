@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Suppliers & payments"};export default function Page(){return <DevelopmentState title="Suppliers & payments" description="Supplier records, bills, and disbursements." backend="Supplier, bill, payment, and payable aging tables are not defined in the migration."/>;}

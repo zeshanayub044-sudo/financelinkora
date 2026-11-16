@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Invoices"};export default function Page(){return <DevelopmentState title="Invoices" description="Invoice creation, delivery, and receivables tracking." backend="Invoice, customer, and receivable tables are not present in the existing migration."/>;}

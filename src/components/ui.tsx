@@ -1,0 +1,13 @@
+import { cn } from "@/lib/utils";
+import { cva } from "class-variance-authority";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+const buttonVariants=cva("focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition disabled:pointer-events-none disabled:opacity-45",{variants:{variant:{primary:"bg-primary text-white hover:bg-blue-700",secondary:"border border-border bg-card hover:bg-slate-50 dark:hover:bg-slate-800",ghost:"text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",danger:"bg-red-50 text-red-700 hover:bg-red-100"}},defaultVariants:{variant:"primary"}});
+export function Button({className,variant="primary",...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:"primary"|"secondary"|"ghost"|"danger"}) {
+  return <button className={cn(buttonVariants({variant}),className)} {...props}/>;
+}
+export function Input({className,...props}:InputHTMLAttributes<HTMLInputElement>) { return <input className={cn("focus-ring min-h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground placeholder:text-slate-400",className)} {...props}/>; }
+export function Select({className,...props}:React.SelectHTMLAttributes<HTMLSelectElement>) { return <select className={cn("focus-ring min-h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground",className)} {...props}/>; }
+export function Label({children,...props}:{children:ReactNode;htmlFor?:string}) { return <label className="mb-1.5 block text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-300" {...props}>{children}</label>; }
+export function Card({children,className}:{children:ReactNode;className?:string}) { return <section className={cn("surface",className)}>{children}</section>; }
+export function EmptyState({title,description,icon}:{title:string;description:string;icon?:ReactNode}) { return <div className="flex min-h-56 flex-col items-center justify-center px-6 py-10 text-center">{icon&&<div className="mb-3 text-slate-400">{icon}</div>}<p className="font-semibold">{title}</p><p className="mt-1 max-w-md text-sm text-slate-500">{description}</p></div>; }
+export function PageHeader({eyebrow,title,description,action}:{eyebrow?:string;title:string;description?:string;action?:ReactNode}) { return <div className="mb-7 flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div>{eyebrow&&<p className="mb-1 text-xs font-semibold uppercase tracking-[.16em] text-blue-600">{eyebrow}</p>}<h1 className="text-2xl font-bold tracking-tight sm:text-[28px]">{title}</h1>{description&&<p className="mt-1.5 max-w-2xl text-sm text-slate-500">{description}</p>}</div>{action}</div>; }

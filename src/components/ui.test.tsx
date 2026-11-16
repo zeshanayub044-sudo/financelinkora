@@ -1,0 +1,2 @@
+import {describe,it,expect} from "vitest";import {render,screen} from "@testing-library/react";import {Button} from "./ui";
+describe("Button component",()=>{it("renders accessible button text",()=>{render(<Button>Save draft</Button>);expect(screen.getByRole("button",{name:"Save draft"})).toBeInTheDocument();});it("disables while an action is pending",()=>{render(<Button disabled>Saving</Button>);expect(screen.getByRole("button",{name:"Saving"})).toBeDisabled();});});

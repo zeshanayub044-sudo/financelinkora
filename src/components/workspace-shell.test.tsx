@@ -1,0 +1,5 @@
+import {describe,it,expect,vi} from "vitest";import {fireEvent,render,screen} from "@testing-library/react";import {WorkspaceShell} from "./workspace-shell";
+vi.mock("next/navigation",()=>({usePathname:()=>"/dashboard",useRouter:()=>({push:vi.fn(),refresh:vi.fn()})}));
+vi.mock("next/image",()=>({default:(props:React.ImgHTMLAttributes<HTMLImageElement>&{priority?:boolean})=>{const {priority,...imageProps}=props;void priority;return <span role="img" aria-label={imageProps.alt} data-src={imageProps.src}/>;}}));
+vi.mock("@/lib/supabase/client",()=>({createClient:()=>({auth:{signOut:vi.fn()}})}));
+describe("responsive workspace navigation",()=>{it("opens the small-screen navigation drawer",()=>{const {container}=render(<WorkspaceShell org={{id:"org",name:"Northstar",base_currency:"PKR"}} orgs={[]} user={{email:"user@example.com"}}>Workspace</WorkspaceShell>);fireEvent.click(screen.getByRole("button",{name:"Open navigation"}));expect(container.querySelector(".fixed.inset-0.z-40")).toBeInTheDocument();expect(screen.getAllByRole("button",{name:"Close navigation"}).length).toBeGreaterThan(0);});});

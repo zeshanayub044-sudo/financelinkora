@@ -1,0 +1,1 @@
+import {DevelopmentState} from "@/components/development-state";export const metadata={title:"Payroll"};export default function Page(){return <DevelopmentState title="Payroll" description="Payroll operations and wage accounting." backend="The chart includes salary and wage accounts, but there are no employee payroll, pay-run, or payslip structures in the migration."/>;}

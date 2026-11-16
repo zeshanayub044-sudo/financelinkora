@@ -1,0 +1,2 @@
+import Link from "next/link";import { AuthForm } from "@/components/auth-form";
+export default function ResetPage(){return <><h1 className="text-3xl font-bold">Choose a new password</h1><p className="mb-8 mt-2 text-sm text-slate-500">Use a strong password you don’t use elsewhere.</p><AuthForm mode="reset"/><Link href="/login" className="mt-5 block text-sm text-blue-700">Return to sign in</Link></>;}
