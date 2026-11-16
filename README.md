@@ -1,80 +1,108 @@
 # Linkora Finance
 
-Linkora Finance is a Next.js 16 application built on the existing Phase 1+2 database foundation. It keeps the original migration and accounting rules intact and uses the provided brand tokens and assets.
+Linkora Finance is a branded Next.js 16 and TypeScript financial workspace. It preserves the original database foundation and adds incremental database hardening and accounting workflows.
+
+## Supabase target
+
+The selected development and testing target is the existing Free project `jztejhppiepczvqiebik` in the Linkora Finance organization `roszvxdeseeatthlkhwm`. It is hosted in Seoul (`ap-northeast-2`), not Mumbai. A read-only catalog audit found no application tables, custom schemas, Auth users, Storage buckets, or Storage objects. No migration has been applied from this workspace, and no frontend secrets are configured here.
+
+The project is still on the Free plan. Free includes 500 MB database storage, 5 GB egress, 1 GB file storage, and 50,000 monthly active users; projects may pause after a week of low activity. There are no automatic database backups or point-in-time recovery on Free. Do not use this project for production accounting records until backup, recovery, RLS, and real-accounting tests have passed and the availability limitations have been accepted.
 
 ## Included
 
-- Responsive, branded workspace with organization selection, search, notification panel, profile menu, dark theme, and mobile navigation.
-- Supabase Auth login, password recovery, password update, SSR cookie sessions, and protected workspace routes.
-- Organization setup using the existing `create_organization(...)` RPC and starter chart of accounts.
-- Data-driven dashboard, chart of accounts, journal entries, approval/posting/reversal workflow, general ledger, trial balance, accounting periods, audit log, and approval settings.
-- Tailwind CSS 4 and shadcn/ui compatible component tokens, variant primitives, and CLI configuration.
-- Search, sorting, and pagination for finance tables; Zod validation and balanced journal calculations.
-- Clearly marked development states for modules that have no supporting records or routines in the current migration.
-
-The app uses real Supabase queries only. Without a project URL and anon key, it shows a setup message. With an empty database, the dashboard explains that no posted activity exists; it does not seed example figures.
-
-## Requirements
-
-- Node.js 20.9 or newer (Node.js 24 LTS recommended).
-- pnpm 10 or newer.
-- A new, dedicated Supabase project for Linkora Finance. This app has not been connected to any project.
+- Responsive Linkora application shell, brand assets, light/dark theme, tables, search, and role-aware navigation.
+- Supabase Auth login, registration, password recovery, reset, server-rendered cookie sessions, and protected workspace routes.
+- Organization setup and starter chart of accounts through the existing setup RPC.
+- Dashboard reads posted ledger data and returns empty states when there are no posted entries.
+- Chart of Accounts, journal creation/detail, staged approval controls, ledger, trial balance, accounting periods, and audit views.
+- Additive hardening migrations for maker-checker workflow, database-enforced posting and reversals, audit capture, period validation, cross-organization references, and accounting reports.
+- Explicit development states for modules without supporting database tables or procedures.
 
 ## Run locally
 
-```bash
+Requirements: Node.js 20.9+ and pnpm 10+.
+
+```powershell
 pnpm install
 Copy-Item .env.example .env.local
-# Fill in the two Supabase values after creating your dedicated project.
-pnpm dev
 ```
 
-Open `http://localhost:3000`. The login recovery flow needs this redirect URL in Supabase Auth: `http://localhost:3000/auth/callback`. Add your production callback URL before deployment.
+Set the selected project's URL and publishable key in `.env.local`:
 
-## Connect a new Supabase project
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://jztejhppiepczvqiebik.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+```
 
-1. Create a new Supabase organization and project specifically for Linkora Finance. Do not reuse an unrelated project.
-2. In the new project's SQL Editor, run the existing `supabase/migrations/0001_foundation_and_ledger.sql` migration. This app does not replace or amend that migration.
-3. In Supabase Auth, enable email sign-in. Configure the Site URL and redirect allowlist to include `http://localhost:3000/auth/callback` and the production `/auth/callback` URL when deployed. Enable leaked-password protection and MFA according to your organization's policy.
-4. Copy the project URL and publishable/anon key from the new project's API settings into `.env.local`:
+Then run `pnpm dev` and open `http://localhost:3000`. Publishable keys are intended for browser use; never add a service-role key or database password to `NEXT_PUBLIC_*` variables or commit `.env.local`.
 
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
-   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
-   ```
+## Apply database migrations
 
-5. Restart `pnpm dev`, create an account through Supabase Auth, then sign in. The app calls the migration's `create_organization(...)` function to create the organization, owner membership, and starter chart of accounts.
-6. Invite a second authorized member before testing maker-checker approval. Approval is denied when the creator tries to approve their own journal entry.
-7. Create a balanced draft, approve it as a different authorized user, and post it. Verify it appears in the general ledger and trial balance. Test closed accounting periods and a reversal as separate workflows.
+The original `supabase/migrations/0001_foundation_and_ledger.sql` is preserved. Apply all files in order using the Supabase CLI so the database migration history remains synchronized:
 
-The app reads the current `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and also accepts the legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` name. Only a publishable/anon key is used by the app. No service-role key is required or accepted by the frontend. Do not put service-role or secret keys in `NEXT_PUBLIC_*` variables.
+```powershell
+pnpm dlx supabase@latest login
+pnpm dlx supabase@latest link --project-ref jztejhppiepczvqiebik
+pnpm dlx supabase@latest migration list --linked
+pnpm dlx supabase@latest db push --linked --dry-run
+pnpm dlx supabase@latest db push --linked
+```
 
-## Accounting behavior and current database limits
+Review the dry-run output carefully. The project must still be the selected Linkora Finance Free project. `db push` applies the historical foundation first, then `20261117000100_extend_workflow_roles.sql`, then `20261117000200_accounting_workflow_and_security.sql`. The enum migration is separate because PostgreSQL requires new enum labels to commit before later migrations use them. Do not run the foundation migration alone as an exposed application; the hardening migration is required before inviting users.
 
-- Journal drafts are created with their lines through the authenticated Supabase session. The app checks balance on the client and server; database functions and triggers remain the final authority.
-- Approve and post calls use the existing `approve_journal_entry` and `post_journal_entry` RPCs. Reversals use `reverse_journal_entry`.
-- The migration has `draft`, `approved`, `posted`, and `reversed` statuses. It has no rejected status or submit/reject RPC, so the app does not simulate rejection. Drafts are shown in the review queue and authorized users can approve them directly.
-- Existing account and period policies are honored. The migration supports account creation but the UI does not offer account editing/deletion. Audit triggers cover accounts, journal entries, and organization updates; the audit page describes this scope.
-- Existing reports are the `ledger` view and `trial_balance(...)` function. The UI does not invent invoices, bank reconciliation, budgets, tax schedules, payroll, or financial statements that the migration cannot store.
-- The migration includes entry currency and exchange-rate fields, but its trial-balance function does not convert currencies. The application therefore enforces the organization base currency for new journal entries until FX reporting is implemented.
+The current workspace's Supabase MCP connection does not have permission for this project, and the Supabase CLI is not installed here. Therefore live migrations and database-level tests have **not** been run from this workspace.
 
-## Checks
+## Authentication setup
 
-Local checks:
+In Supabase Auth, enable the providers you intend to use and configure the site URL and allowed redirects:
 
-```bash
+- Local: `http://localhost:3000/auth/callback`
+- Hosted: `https://YOUR_DOMAIN/auth/callback`
+
+The app does not create local or hardcoded sessions. Create an Auth account through `/signup`, then use organization setup to create an organization and starter ledger. Invite another authorized member before testing maker-checker approval.
+
+## Tests
+
+Local tests do not need a live project:
+
+```powershell
 pnpm typecheck
 pnpm test
 pnpm lint
 pnpm build
 ```
 
-Vitest tests cover UI components, authentication form behavior/validation, journal balancing, and form validation. Responsive navigation has a component check; also inspect the app at narrow phone, tablet, and desktop widths when a Supabase project is connected.
+`src/lib/supabase/integration.test.ts` is a live smoke-test preparation. It is skipped unless `NEXT_PUBLIC_SUPABASE_URL`, a publishable key, `SUPABASE_TEST_EMAIL`, and `SUPABASE_TEST_PASSWORD` are provided for a dedicated test account. It signs in and reads that account's own memberships; it does not provision synthetic financial records. RLS cross-tenant, journal posting/reversal, period locks, report reconciliation, and migration tests still require a dedicated test organization and live verification.
 
-Live-Supabase checks are intentionally not run until a new project and test users are configured. Exercise sign-in/recovery, RLS membership boundaries, maker-checker approval, posting restrictions, closed periods, reversal, audit visibility, and trial-balance totals using test accounts with different roles. Never use a service-role key for these checks.
+## Backup and recovery on Free
 
-## Modules
+Supabase Free does not provide automatic database backups, downloadable platform backups, or PITR. Before applying schema changes and on a regular schedule, export the database with the Supabase CLI, encrypt the backup, and store it outside this repository and outside the Supabase project:
 
-Operational against the current migration: chart of accounts (read/create), journal entries (draft/create, approve, post, reverse), general ledger, trial balance, accounting periods (read/create/close/reopen), audit log, dashboard, authentication, and approval setting.
+```powershell
+pnpm dlx supabase@latest db dump --linked --file .\linkora-backup.sql
+```
 
-Development states pending backend support: income, expenses, banking/reconciliation, customers, suppliers, invoices, payments, budgets, cash flow, financial statements, projects, departments, fixed assets, tax management, payroll, and extended financial reports.
+Keep access tightly restricted and remove local copies after transferring them to approved encrypted storage. To recover, restore the dump into a separate disposable local PostgreSQL/Supabase instance first, validate schema and accounting totals there, then plan a reviewed restore to the target project. A database dump does not back up files stored in Supabase Storage; export those separately if Storage is later enabled. The restore process has not yet been exercised, so this is a procedure, not a disaster-recovery guarantee.
+
+## Module status
+
+| Module | Current state |
+| --- | --- |
+| Auth, organization setup, chart of accounts | UI and Supabase integration implemented; live configuration not verified |
+| Journal draft, submit, review queue, approve, reject, post, reverse | Frontend and additive SQL implemented; migrations and live workflow tests pending |
+| Ledger, trial balance, P&L, balance sheet, dashboard summaries | Queries and report functions prepared; live reconciliation pending |
+| Accounting periods and audit log | Interfaces and additive integrity/audit SQL prepared; live RLS tests pending |
+| Income, expenses, invoicing, AR/AP, banking and reconciliation | Development states; transactional schema/workflows not implemented |
+| Budgets, fixed assets, multi-currency revaluation, departments/projects, payroll, tax | Development states; not implemented |
+| Cash flow statement and advanced exports | Not implemented |
+
+The reports use posted and reversed journal entries. Opening balance workflows, period closing transfers, cash-flow classification, and foreign-currency revaluation are not yet supported; do not represent these reports as IFRS-complete financial statements.
+
+## Free-plan region and limitations
+
+Pakistan users will generally see more network latency from Seoul than from a nearer South Asian region such as Mumbai. Region cannot be changed in place; moving would require creating and validating a separate project and migrating data. Keep the current project rather than taking a data-loss or additional-cost risk solely to change region. Free projects can pause after inactivity, have limited storage/egress, and do not include automatic backups or an uptime SLA.
+
+## Deployment
+
+The application has no Vercel or custom-domain configuration and has not been deployed. After live database verification, configure the same publishable Supabase URL/key as deployment environment variables, set the production Auth callback URL, deploy from the existing GitHub repository, then verify sign-in, protected routes, responsive layouts, and the database workflows. Confirm the hosting provider's current free-tier limits and possible costs before enabling billing or paid features.
+
