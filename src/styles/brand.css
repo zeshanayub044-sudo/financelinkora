@@ -1,0 +1,12 @@
+/* Linkora brand tokens — import in globals.css; map in tailwind via hsl/var() */
+:root{
+  --navy:#0B1E3D; --royal:#2563EB; --cyan:#06B6D4; --silver:#E5E7EB;
+  --background:#F6F8FB; --foreground:#0B1E3D; --card:#FFFFFF; --border:#E2E8F0;
+  --muted:#64748B; --primary:#2563EB; --primary-fg:#FFFFFF; --accent:#06B6D4;
+  --sidebar:#0B1E3D; --sidebar-fg:#E5E7EB; --debit:#2563EB; --credit:#06B6D4;
+  --success:#16A34A; --warning:#D97706; --danger:#DC2626;
+}
+.dark{
+  --background:#07142B; --foreground:#E5E7EB; --card:#0B1E3D; --border:#1B3358;
+  --muted:#94A3B8; --sidebar:#06122A;
+}
