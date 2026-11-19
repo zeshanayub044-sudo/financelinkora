@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { calculateJournal, formatMoney } from "./utils";
+import { balanceSheetDifference, calculateJournal, calculatePercent, compareDecimals, formatMoney, sumDecimals, trialBalanceTotals } from "./utils";
 describe("journal calculations", () => {
-  it("balances debits and credits to four decimal places", () => { expect(calculateJournal([{ debit: "10", credit: 0 }, { debit: 0, credit: "10" }])).toMatchObject({ balanced: true, difference: 0 }); });
+  it("balances debits and credits to four decimal places", () => { expect(calculateJournal([{ debit: "10", credit: "0" }, { debit: "0", credit: "10" }])).toMatchObject({ balanced: true, difference: "0" }); });
   it("rejects a one sided or unbalanced entry", () => { expect(calculateJournal([{ debit: 2, credit: 0 }, { debit: 0, credit: 1 }]).balanced).toBe(false); });
+  it("uses decimal units so ordinary fractions balance exactly",()=>{expect(calculateJournal([{debit:"0.1",credit:0},{debit:"0.2",credit:0},{debit:0,credit:"0.3"}]).balanced).toBe(true);});
+  it("rejects values beyond the database four-place precision",()=>{expect(calculateJournal([{debit:"0.10001",credit:0},{debit:0,credit:"0.1"}]).balanced).toBe(false);});
   it("formats currency values", () => { expect(formatMoney(0, "PKR")).toContain("0"); });
+  it("sums report decimals without binary floating-point drift",()=>{expect(sumDecimals(["0.1","0.2","0.0001"])).toBe("0.3001");});
+  it("sums large report values and negative contra balances exactly",()=>{expect(sumDecimals(["9999999999999999.9999","-0.0001"])).toBe("9999999999999999.9998");});
+  it("compares large report decimals exactly for category ordering",()=>{expect(compareDecimals("9007199254740993.0001","9007199254740993")).toBe(1);expect(compareDecimals("0.0001","0")).toBe(1);expect(compareDecimals("-2","-1")).toBe(-1);});
+  it("rejects report values beyond NUMERIC four-place scale",()=>{expect(()=>sumDecimals(["1.00001"])).toThrow(RangeError);});
+  it("keeps large monetary values exact when formatting",()=>{const formatted=formatMoney("9999999999999999.9999","PKR");expect(formatted.replace(/[^\d]/g,"")).toContain("99999999999999999999");});
+  it("preserves negative values smaller than one currency unit",()=>{expect(formatMoney("-0.0001","PKR")).toContain("-");expect(formatMoney("-0.0001","PKR")).toContain("0001");});
+  it("uses one localized decimal separator and currency-specific minimum precision",()=>{expect(formatMoney("1","USD")).toMatch(/1\.00$/);expect(formatMoney("1.2001","PKR")).toMatch(/1\.2001$/);});
+  it("keeps journal totals and differences exact beyond JavaScript safe integers",()=>{expect(calculateJournal([{debit:"9007199254740993.0001",credit:"0"},{debit:"0",credit:"9007199254740993"}])).toMatchObject({balanced:false,difference:"0.0001",differenceAbs:"0.0001"});});
+  it("reconciles a synthetic trial balance with exact decimal totals",()=>{expect(trialBalanceTotals([{debit:"1200.0001",credit:"0"},{debit:"0",credit:"200.0001"},{debit:"0",credit:"1000"}])).toEqual({debit:"1200.0001",credit:"1200.0001",balanced:true});});
+  it("checks the accounting equation using exact decimal arithmetic",()=>{expect(balanceSheetDifference("1200.0001","200.0001","1000")).toBe("0");expect(balanceSheetDifference("1200","200","999.9999")).toBe("0.0001");});
+  it("calculates percentage tax in decimal integer units",()=>{expect(calculatePercent("100.00","17.500000")).toBe("17.5");expect(calculatePercent("0.03","7.5")).toBe("0.0023");});
+  it("rejects invalid tax rate precision",()=>{expect(()=>calculatePercent("1.00001","5")).toThrow(RangeError);});
 });

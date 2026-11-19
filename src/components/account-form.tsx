@@ -1,3 +1,27 @@
-"use client";import {useState} from "react";import {useForm} from "react-hook-form";import {zodResolver} from "@hookform/resolvers/zod";import {z} from "zod";import {Button,Input,Label,Select} from "@/components/ui";import {createAccountAction} from "@/app/(workspace)/actions";
-const schema=z.object({code:z.string().trim().min(1,"Enter an account code").max(30),name:z.string().trim().min(2,"Enter an account name").max(150),type:z.enum(["asset","liability","equity","revenue","expense"]),description:z.string().max(500)});type FormData=z.infer<typeof schema>;
-export function AccountForm({orgId}:{orgId:string}){const [open,setOpen]=useState(false);const [message,setMessage]=useState("");const {register,handleSubmit,reset,formState:{errors,isSubmitting}}=useForm<FormData>({resolver:zodResolver(schema),defaultValues:{code:"",name:"",type:"asset",description:""}});const submit=handleSubmit(async v=>{const result=await createAccountAction({...v,org_id:orgId});if(result.error)setMessage(result.error);else{setMessage("Account created.");reset();location.reload();}});return <>{!open?<Button onClick={()=>setOpen(true)}>Add account</Button>:<form onSubmit={submit} className="surface mb-5 grid gap-3 p-4 sm:grid-cols-2"><div><Label htmlFor="code">Code</Label><Input id="code" {...register("code")}/>{errors.code&&<small className="text-red-600">{errors.code.message}</small>}</div><div><Label htmlFor="name">Name</Label><Input id="name" {...register("name")}/>{errors.name&&<small className="text-red-600">{errors.name.message}</small>}</div><div><Label>Account type</Label><Select {...register("type")}><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="revenue">Revenue</option><option value="expense">Expense</option></Select></div><div><Label htmlFor="description">Description</Label><Input id="description" {...register("description")}/></div>{message&&<p role="alert" className="text-xs text-red-600 sm:col-span-2">{message}</p>}<div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="secondary" onClick={()=>{setOpen(false);reset();}}>Cancel</Button><Button disabled={isSubmitting}>Create account</Button></div></form>}</>;}
+"use client";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button, Input, Label, Select } from "@/components/ui";
+import { createAccountAction } from "@/app/(workspace)/actions";
+
+const schema=z.object({code:z.string().trim().min(1,"Enter an account code").max(30),name:z.string().trim().min(2,"Enter an account name").max(150),type:z.enum(["asset","liability","equity","revenue","expense"]),description:z.string().max(500),reporting_class:z.enum(["","cash","bank","receivable","payable","accumulated_depreciation"])});
+type FormData=z.infer<typeof schema>;
+const classesFor=(type:FormData["type"])=>type==="asset"?["cash","bank","receivable","accumulated_depreciation"]:type==="liability"?["payable"]:[];
+
+export function AccountForm({orgId}:{orgId:string}){
+  const [open,setOpen]=useState(false);const [message,setMessage]=useState("");
+  const {register,handleSubmit,reset,control,formState:{errors,isSubmitting}}=useForm<FormData>({resolver:zodResolver(schema),defaultValues:{code:"",name:"",type:"asset",description:"",reporting_class:""}});
+  const type=useWatch({control,name:"type"});const classes=classesFor(type);
+  const submit=handleSubmit(async v=>{setMessage("");try{const result=await createAccountAction({...v,org_id:orgId,reporting_class:v.reporting_class||null});if(result.error){setMessage(result.error);return;}setMessage("Account created.");reset();location.reload();}catch{setMessage("The account request failed. Your entries are still in this form; please try again.");}});
+  return <>{!open?<Button onClick={()=>setOpen(true)}>Add account</Button>:<form onSubmit={submit} className="surface mb-5 grid gap-3 p-4 sm:grid-cols-2">
+    <div><Label htmlFor="code">Code</Label><Input id="code" {...register("code")}/>{errors.code&&<small className="text-red-600">{errors.code.message}</small>}</div>
+    <div><Label htmlFor="name">Name</Label><Input id="name" {...register("name")}/>{errors.name&&<small className="text-red-600">{errors.name.message}</small>}</div>
+    <div><Label htmlFor="account-type">Account type</Label><Select id="account-type" {...register("type")}><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="revenue">Revenue</option><option value="expense">Expense</option></Select></div>
+    <div><Label htmlFor="reporting-class">Account reporting class</Label><Select id="reporting-class" {...register("reporting_class")}><option value="">Not designated</option>{classes.map(value=><option value={value} key={value}>{value==="accumulated_depreciation"?"Accumulated depreciation (contra asset)":value[0].toUpperCase()+value.slice(1)}</option>)}</Select></div>
+    <div className="sm:col-span-2"><Label htmlFor="description">Description</Label><Input id="description" {...register("description")}/></div>
+    {message&&<p role={message==="Account created."?"status":"alert"} className="text-xs text-slate-600 sm:col-span-2">{message}</p>}
+    <div className="flex justify-end gap-2 sm:col-span-2"><Button type="button" variant="secondary" onClick={()=>{setOpen(false);setMessage("");reset();}}>Cancel</Button><Button disabled={isSubmitting}>Create account</Button></div>
+  </form>}</>;
+}

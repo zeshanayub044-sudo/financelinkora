@@ -1,2 +1,23 @@
-import {getWorkspace} from "@/lib/data";import {Card,PageHeader,EmptyState} from "@/components/ui";import {DateFilter} from "@/components/date-filter";import {DataTable} from "@/components/data-table";import {formatMoney} from "@/lib/utils";
-export const metadata={title:"Trial balance"};export default async function TrialBalancePage({searchParams}:{searchParams:Promise<{from?:string;to?:string}>}){const {org,supabase}=await getWorkspace();if(!org||!supabase)return null;const q=await searchParams;const fy=Number((await supabase.from("organizations").select("fy_start_month").eq("id",org.id).single()).data?.fy_start_month??1);const now=new Date();const year=now.getMonth()+1>=fy?now.getFullYear():now.getFullYear()-1;const defaultFrom=`${year}-${String(fy).padStart(2,"0")}-01`;const defaultTo=now.toISOString().slice(0,10);const from=q.from??defaultFrom,to=q.to??defaultTo;const {data,error}=await supabase.rpc("trial_balance",{p_org:org.id,p_from:from,p_to:to});const rows=(data??[]).map((r,i)=>({...r,id:`${r.code}-${i}`,debit:Number(r.debit),credit:Number(r.credit)}));const debit=rows.reduce((s,r)=>s+r.debit,0),credit=rows.reduce((s,r)=>s+r.credit,0);return <><PageHeader eyebrow={org.name} title="Trial balance" description="Debits and credits by account for posted and reversed entries in a date range."/><Card className="mb-5 p-4 md:p-5"><DateFilter from={from} to={to}/></Card><Card className="p-4 md:p-5">{error?<EmptyState title="Trial balance unavailable" description={error.message}/>:<><DataTable rows={rows as unknown as Record<string,unknown>[]} columns={[{key:"code",label:"Code"},{key:"name",label:"Account"},{key:"type",label:"Type",render:r=><span className="capitalize">{String(r.type)}</span>},{key:"debit",label:"Debit",render:r=>formatMoney(Number(r.debit),org.base_currency)},{key:"credit",label:"Credit",render:r=>formatMoney(Number(r.credit),org.base_currency)}]} empty="No posted activity in this period."/><div className="mt-3 flex justify-end gap-10 border-t border-border pt-3 text-sm font-bold"><span>Total debits&nbsp; {formatMoney(debit,org.base_currency)}</span><span>Total credits&nbsp; {formatMoney(credit,org.base_currency)}</span></div></>}</Card></>;}
+import {getWorkspace} from "@/lib/data";
+import {Card,PageHeader,EmptyState,Button,Input,Label} from "@/components/ui";
+import {DataTable} from "@/components/data-table";
+import {CsvExport} from "@/components/csv-export";
+import {formatMoney,trialBalanceTotals} from "@/lib/utils";
+
+export const metadata={title:"Trial balance"};
+export default async function TrialBalancePage({searchParams}:{searchParams:Promise<{asOf?:string}>}){
+  const {org,supabase}=await getWorkspace();if(!org||!supabase)return null;
+  const q=await searchParams;const asOf=q.asOf??new Date().toISOString().slice(0,10);
+  const {data,error}=await supabase.rpc("trial_balance_as_of_exact",{p_org:org.id,p_as_of:asOf});
+  const rows=(data??[]).map((r,i)=>({...r,id:`${r.code}-${i}`}));
+  const csvRows=(data??[]).map(r=>[r.code,r.name,r.type,r.debit,r.credit]);
+  const totals=trialBalanceTotals(data??[]);
+  return <>
+    <PageHeader eyebrow={org.name} title="Trial balance" description={`Cumulative debit and credit balances for posted and reversed entries as of ${asOf}.`} action={!error?<CsvExport filename={`linkora-trial-balance-${asOf}.csv`} headers={["Account code","Account","Type","Debit","Credit"]} rows={csvRows}/>:null}/>
+    <Card className="mb-5 p-4 md:p-5"><form className="flex flex-wrap items-end gap-3" action="/trial-balance"><div><Label htmlFor="asOf">As of</Label><Input id="asOf" name="asOf" type="date" defaultValue={asOf}/></div><Button>Run report</Button></form></Card>
+    <Card className="p-4 md:p-5">{error?<EmptyState title="Trial balance unavailable" description={error.message}/>:<>
+      <DataTable rows={rows as unknown as Record<string,unknown>[]} columns={[{key:"code",label:"Code"},{key:"name",label:"Account"},{key:"type",label:"Type",render:r=><span className="capitalize">{String(r.type)}</span>},{key:"debit",label:"Debit",render:r=>formatMoney(String(r.debit),org.base_currency)},{key:"credit",label:"Credit",render:r=>formatMoney(String(r.credit),org.base_currency)}]} empty="No posted activity as of this date."/>
+      <div className="mt-3 flex flex-wrap justify-end gap-6 border-t border-border pt-3 text-sm font-bold"><span>Total debits&nbsp; {formatMoney(totals.debit,org.base_currency)}</span><span>Total credits&nbsp; {formatMoney(totals.credit,org.base_currency)}</span><span className={totals.balanced?"text-emerald-700":"text-red-700"}>{totals.balanced?"Balanced":"Out of balance"}</span></div>
+    </>}</Card>
+  </>;
+}

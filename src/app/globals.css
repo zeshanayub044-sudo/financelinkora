@@ -15,3 +15,16 @@ button,a { -webkit-tap-highlight-color:transparent; }
 ::selection { background:#bfdbfe; color:#0B1E3D; }
 .surface { background:var(--card); border:1px solid var(--border); border-radius:16px; }
 .focus-ring:focus-visible { outline:3px solid color-mix(in srgb,var(--royal) 50%,transparent); outline-offset:2px; }
+@media print {
+  @page { margin:14mm; }
+  html,body { background:#fff !important; color:#111 !important; }
+  body * { box-shadow:none !important; }
+  form,input,select,textarea,[role="dialog"] { display:none !important; }
+  button { border:0 !important; background:transparent !important; padding:0 !important; color:inherit !important; }
+  main { max-width:none !important; min-height:0 !important; padding:0 !important; }
+  .overflow-x-auto { overflow:visible !important; }
+  .surface { border-color:#d1d5db !important; background:#fff !important; }
+  table { width:100%; border-collapse:collapse; }
+  thead { display:table-header-group; }
+  tr { break-inside:avoid; }
+}
