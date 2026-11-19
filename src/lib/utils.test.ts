@@ -19,3 +19,4 @@ describe("journal calculations", () => {
   it("calculates percentage tax in decimal integer units",()=>{expect(calculatePercent("100.00","17.500000")).toBe("17.5");expect(calculatePercent("0.03","7.5")).toBe("0.0023");});
   it("rejects invalid tax rate precision",()=>{expect(()=>calculatePercent("1.00001","5")).toThrow(RangeError);});
 });
+
