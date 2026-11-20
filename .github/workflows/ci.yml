@@ -52,7 +52,24 @@ jobs:
       - name: Rebuild the local database from migration history
         run: supabase db reset --no-seed
       - name: Run pgTAP security and accounting suite against local database only
-        run: supabase test db
+        shell: bash
+        run: |
+          set +e
+          supabase test db > "$RUNNER_TEMP/linkora-pgtap.log" 2>&1
+          status=$?
+          cat "$RUNNER_TEMP/linkora-pgtap.log"
+          if [ "$status" -ne 0 ]; then
+            {
+              echo '### pgTAP failure details (isolated local database)'
+              echo
+              echo '```text'
+              grep -E 'ERROR:|LINE [0-9]+:|DETAIL:|CONTEXT:|Failed test|have:|want:|caught:|wanted:|Dubious|Failed [0-9]+/[0-9]+|Tests:|Parse errors:|Result:' "$RUNNER_TEMP/linkora-pgtap.log" \
+                | head -n 120 \
+                | sed -E 's/sb_(publishable|secret)_[A-Za-z0-9_-]+/[REDACTED]/g; s/eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}/[REDACTED]/g' || true
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
       - name: Stop local Supabase stack
         if: always()
         run: supabase stop --no-backup
