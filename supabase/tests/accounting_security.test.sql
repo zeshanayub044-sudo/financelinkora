@@ -15,6 +15,7 @@ select ok((select relrowsecurity from pg_class where oid='public.fiscal_year_clo
 select ok(not has_table_privilege('authenticated','public.fiscal_year_closings','insert'),'clients cannot create fiscal close records directly');
 select ok(has_function_privilege('authenticated','public.create_fiscal_year_close_draft(uuid,uuid,uuid)','execute'),'fiscal close creation is exposed only through its validated workflow');
 select ok(exists(select 1 from pg_trigger where tgrelid='public.accounting_periods'::regclass and tgname='guard_fiscal_year_period_lock' and not tgisinternal),'fiscal year period lock requires an approved closing journal');
+select is((select public from storage.buckets where id='linkora-finance-receipts'),false,'receipt bucket is private');
 
 select set_config('linkora_test.org_a',gen_random_uuid()::text,true);
 select set_config('linkora_test.org_b',gen_random_uuid()::text,true);
@@ -116,11 +117,14 @@ select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting(
 set local role authenticated;
 
 select ok((select relrowsecurity from pg_class where oid='public.receipt_attachments'::regclass),'receipt metadata enforces row level security');
-select is((select public from storage.buckets where id='linkora-finance-receipts'),false,'receipt bucket is private');
 select ok(not has_table_privilege('authenticated','public.audit_logs','insert'),'authenticated users cannot insert audit rows directly');
 select ok(not has_table_privilege('authenticated','public.audit_logs','update'),'authenticated users cannot update audit rows directly');
 select ok(not has_table_privilege('authenticated','public.audit_logs','delete'),'authenticated users cannot delete audit rows directly');
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.checker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.checker'),'role','authenticated','aud','authenticated')::text,true);
 select is((select count(*)::integer from public.audit_logs where org_id=current_setting('linkora_test.org_b')::uuid),0,'audit log RLS hides another organization');
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.maker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.maker'),'role','authenticated','aud','authenticated')::text,true);
 select ok(not has_function_privilege('anon','public.create_organization(text,text,text,text,char,integer,text,text)','execute'),'anonymous users cannot create organizations');
 select set_config('linkora_test.created_org',public.create_organization('Synthetic setup organization',null,null,null,'USD',1,'accrual','Synthetic Owner')::text,true);
 select is((select role::text from public.organization_members where org_id=current_setting('linkora_test.created_org')::uuid and user_id=current_setting('linkora_test.maker')::uuid),'owner','organization setup assigns the authenticated creator as owner');
@@ -128,7 +132,11 @@ select ok((select count(*)>=30 from public.accounts where org_id=current_setting
 select ok(not has_table_privilege('authenticated','public.receipt_attachments','insert'),'clients cannot insert receipt metadata directly');
 select ok(has_function_privilege('authenticated','public.register_receipt_attachment(uuid,uuid,text,text,text,bigint)','execute'),'authenticated uploads register metadata through validated RPC');
 
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.checker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.checker'),'role','authenticated','aud','authenticated')::text,true);
 select is((select count(*)::integer from public.accounts where org_id=current_setting('linkora_test.org_b')::uuid),0,'RLS hides another organization chart of accounts');
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.maker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.maker'),'role','authenticated','aud','authenticated')::text,true);
 select is((select cash_flow_class from public.accounts where id=current_setting('linkora_test.revenue')::uuid),'operating','new revenue accounts default to operating cash-flow classification');
 select is((select reporting_class from public.accounts where id=current_setting('linkora_test.starter_contra')::uuid),'accumulated_depreciation','starter chart contra-asset account is classified automatically');
 select set_config('linkora_test.department',public.create_department(current_setting('linkora_test.org_a')::uuid,'OPS','Operations','Synthetic test department')::text,true);
@@ -138,9 +146,13 @@ select set_config('linkora_test.project',public.create_project(current_setting('
 select is((select code from public.projects where id=current_setting('linkora_test.project')::uuid),'PRJ-1','authorized member creates a tenant-scoped project');
 select throws_ok($$select public.create_journal_entry_draft(current_setting('linkora_test.org_b')::uuid,current_date,'CROSS-DIM','Cross-organization dimension','USD',1,'general',jsonb_build_array(jsonb_build_object('account_id',current_setting('linkora_test.org_b_cash'),'debit','1','credit','0','department_id',current_setting('linkora_test.department')),jsonb_build_object('account_id',current_setting('linkora_test.org_b_bank'),'debit','0','credit','1')))$$,
   'Choose an active department from this organization','journal lines cannot reference another organization department');
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.checker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.checker'),'role','authenticated','aud','authenticated')::text,true);
 select throws_ok(
-  $$select public.create_journal_entry_draft(current_setting('linkora_test.org_b')::uuid,current_date,null,'cross-tenant attempt','USD',1,'general','[]'::jsonb)$$,
+  $$select public.create_journal_entry_draft(current_setting('linkora_test.org_b')::uuid,current_date,null,'cross-tenant attempt','USD',1,'general',jsonb_build_array(jsonb_build_object('account_id',current_setting('linkora_test.org_b_cash'),'debit','1','credit','0'),jsonb_build_object('account_id',current_setting('linkora_test.org_b_bank'),'debit','0','credit','1')))$$,
   'Not authorized to create journal entries','RPC refuses journal creation for another organization');
+select set_config('request.jwt.claim.sub',current_setting('linkora_test.maker'),true);
+select set_config('request.jwt.claims',jsonb_build_object('sub',current_setting('linkora_test.maker'),'role','authenticated','aud','authenticated')::text,true);
 select throws_ok(
   $$insert into public.journal_entries(org_id,entry_date,description,status,created_by) values(current_setting('linkora_test.org_a')::uuid,current_date,'direct post bypass','posted',current_setting('linkora_test.maker')::uuid)$$,
   'Journal entries must be created as drafts','direct inserts cannot skip the journal workflow');
