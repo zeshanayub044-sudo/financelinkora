@@ -1,7 +1,12 @@
 import {describe,expect,it} from "vitest";
-import {hasSupabasePublicConfig,isAllowedSupabaseUrl,LINKORA_SUPABASE_URL} from "./config";
+import {hasSupabasePublicConfig,isAllowedSupabaseUrl,LINKORA_SUPABASE_URL,resolveSupabaseUrl} from "./config";
 
 describe("Supabase project guard",()=>{
+ it("defaults to the approved project and allows an explicit local override",()=>{
+  expect(resolveSupabaseUrl(undefined)).toBe(LINKORA_SUPABASE_URL);
+  expect(resolveSupabaseUrl(" ")).toBe(LINKORA_SUPABASE_URL);
+  expect(resolveSupabaseUrl("http://localhost:54321")).toBe("http://localhost:54321");
+ });
  it("accepts only the approved hosted Linkora project",()=>{
   expect(isAllowedSupabaseUrl(LINKORA_SUPABASE_URL)).toBe(true);
   expect(isAllowedSupabaseUrl("https://unrelated-project.supabase.co")).toBe(false);

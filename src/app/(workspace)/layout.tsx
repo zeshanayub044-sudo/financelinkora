@@ -16,7 +16,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           <h1 className="mt-3 text-2xl font-bold">Connect the selected Linkora project</h1>
           <p className="mt-3 text-sm leading-6 text-slate-500">
             Use the existing Linkora Finance project (reference jztejhppiepczvqiebik). Apply the versioned migrations with the Supabase CLI,
-            then set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local. Never put a service-role key or database password in browser variables.
+            then set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local. The approved project URL is preconfigured; set NEXT_PUBLIC_SUPABASE_URL only to override it for local Supabase. Never put a service-role key or database password in browser variables.
           </p>
         </div>
       </div>

@@ -1,5 +1,10 @@
 export const LINKORA_SUPABASE_URL="https://jztejhppiepczvqiebik.supabase.co";
 
+/** Use the approved project by default; local Supabase remains an explicit override. */
+export function resolveSupabaseUrl(value:string|undefined):string{
+ return value?.trim()||LINKORA_SUPABASE_URL;
+}
+
 /** Accept only the explicitly selected hosted project or the local Supabase API. */
 export function isAllowedSupabaseUrl(value:string|undefined):boolean{
  if(!value)return false;
@@ -16,6 +21,6 @@ export function hasSupabasePublicConfig(url:string|undefined,key:string|undefine
 }
 
 export const supabaseConfigured=hasSupabasePublicConfig(
- process.env.NEXT_PUBLIC_SUPABASE_URL,
+ resolveSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );

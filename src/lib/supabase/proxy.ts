@@ -1,9 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import {isAllowedSupabaseUrl} from "@/lib/supabase/config";
+import {isAllowedSupabaseUrl,resolveSupabaseUrl} from "@/lib/supabase/config";
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = resolveSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key || !isAllowedSupabaseUrl(url)) return response;
   const supabase = createServerClient(url, key, { cookies: { getAll: () => request.cookies.getAll(), setAll(values,headers) { values.forEach(({name,value}) => request.cookies.set(name,value)); response = NextResponse.next({ request }); values.forEach(({name,value,options}) => response.cookies.set(name,value,options)); Object.entries(headers).forEach(([name,value])=>response.headers.set(name,value)); } } });
